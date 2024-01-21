@@ -2,7 +2,7 @@ from utils import *
 from config import *
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -91,7 +91,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
 
     # Return menu
-    await update.message.reply_text(text = text, reply_markup = InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(text = text, reply_markup = InlineKeyboardMarkup(keyboard), parse_mode = "HTML")
 
 
 
@@ -133,7 +133,7 @@ async def handleCallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             text: str = f"{CONTENT['all_orders']}:\n{orders}"
 
         case "personalOrders":
-            orders: str = getOrders(filter = {"user": context.user_data["user"].username})
+            orders: str = getOrders(filter = {"user_id": context.user_data["user"].id})
             text: str = f"{CONTENT['personal_orders']}:\n{orders}"
 
         case "auth":
@@ -146,7 +146,7 @@ async def handleCallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return await stop(update, context)
     
     # Edit the message depending on callback
-    await update.callback_query.edit_message_text(text = text)
+    await update.callback_query.edit_message_text(text = text, parse_mode = "HTML")
 
 
 
@@ -165,13 +165,13 @@ async def handleMessage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         # Getting orders for specific user
         case "input_username":
-            orders: str = getOrders(filter = {"user": user_input})
+            orders: str = getOrders(filter = {"user_id": user_input})
             text: str = CONTENT["input_invalid_username"]
             if orders:
                 context.user_data["action"]: str = None
-                text: str = f"{CONTENT['user_orders']} {user_input}:\n{orders}"
+                text: str = f"{CONTENT['user_orders']} с id {user_input}:\n{orders}"
 
-            await update.message.reply_text(text = text)
+            await update.message.reply_text(text = text, parse_mode = "HTML")
 
         # Auth handling
         case "auth":
@@ -194,7 +194,7 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main() -> None:
     # Create application
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKENS["TOKEN"]).build()
 
     # Commands
     app.add_handler(CommandHandler("start", start))
