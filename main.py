@@ -66,6 +66,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     This function return's a pretty menu for user interaction
     """
+    context.user_data["action"] = None
     # If user is not logged in
     if context.user_data.get("user") == None:
         text: str = CONTENT["menu_unauth"]
@@ -91,6 +92,13 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
 
     # Return menu
+    # Check whether function call comes from callback handler or command handler       
+    if update.callback_query is not None:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text = text, parse_mode = "HTML")
+        await update.callback_query.edit_message_reply_markup(reply_markup = InlineKeyboardMarkup(keyboard))
+        return None   
+     
     await update.message.reply_text(text = text, reply_markup = InlineKeyboardMarkup(keyboard), parse_mode = "HTML")
 
 
@@ -118,6 +126,8 @@ async def handleCallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     # This is imperative, but idk why
     await update.callback_query.answer()
 
+    keyboard = [[InlineKeyboardButton(text = CONTENT["menu_back"], callback_data = "menu")]]
+
     # Handle callback
     match update.callback_query.data:
         case "freshOrders":
@@ -142,11 +152,15 @@ async def handleCallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.callback_query.edit_message_text(CONTENT["logged_in"])
             return None
         
+        case "menu":
+            return await menu(update, context)
+
         case "exit":
             return await stop(update, context)
     
     # Edit the message depending on callback
     await update.callback_query.edit_message_text(text = text, parse_mode = "HTML")
+    await update.callback_query.edit_message_reply_markup(reply_markup = InlineKeyboardMarkup(keyboard))
 
 
 
@@ -167,11 +181,12 @@ async def handleMessage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         case "input_username":
             orders: str = getOrders(filter = {"user_id": user_input})
             text: str = CONTENT["input_invalid_username"]
+            keyboard = [[InlineKeyboardButton(text = CONTENT["menu_back"], callback_data = "menu")]]
             if orders:
                 context.user_data["action"]: str = None
                 text: str = f"{CONTENT['user_orders']} с id {user_input}:\n{orders}"
 
-            await update.message.reply_text(text = text, parse_mode = "HTML")
+            await update.message.reply_text(text = text, parse_mode = "HTML", reply_markup = InlineKeyboardMarkup(keyboard))
 
         # Auth handling
         case "auth":
